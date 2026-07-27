@@ -1,6 +1,6 @@
 % Pessoa 1 - persistência de contatos em CSV individual por usuário.
 
-:- use_module('csv_utils').
+:- use_module('../csv/csv_utils.pl').
 
 carregar_contatos_csv(Caminho, Resultado) :-
     ( exists_file(Caminho) ->
@@ -15,8 +15,11 @@ carregar_contatos_csv(Caminho, Resultado) :-
             Resultado = erro(Codigo)
         )
     ;
-        criar_csv_contatos_vazio(Caminho, _),
-        Resultado = ok([])
+        ( criar_csv_contatos_vazio(Caminho, ok) ->
+            Resultado = ok([])
+        ;
+            Resultado = erro(nao_foi_possivel_criar_csv(Caminho))
+        )
     ).
 
 salvar_contatos_csv(Caminho, Contatos, Resultado) :-

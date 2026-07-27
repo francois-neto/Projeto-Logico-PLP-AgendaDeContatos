@@ -105,19 +105,25 @@ agenda-contatos-prolog/
 │   └── main.pl
 │
 ├── src/
-│   ├── auth_db.pl
-│   ├── auth_repository.pl
-│   ├── auth_service.pl
-│   ├── auth_menu.pl
-│   ├── contato_db.pl
-│   ├── contato_repository.pl
-│   ├── contato_service.pl
-│   ├── grupo_repository.pl
-│   ├── grupo_service.pl
-│   ├── input_utils.pl
-│   ├── validation.pl
-│   ├── csv_utils.pl
-│   └── menu.pl
+│   ├── db/
+│   │   ├── auth_db.pl
+│   │   └── contato_db.pl
+│   ├── repository/
+│   │   ├── auth_repository.pl
+│   │   ├── contato_repository.pl
+│   │   └── grupo_repository.pl
+│   ├── service/
+│   │   ├── auth_service.pl
+│   │   ├── contato_service.pl
+│   │   └── grupo_service.pl
+│   ├── menu/
+│   │   ├── auth_menu.pl
+│   │   └── menu.pl
+│   ├── csv/
+│   │   └── csv_utils.pl
+│   └── utils/
+│       ├── input_utils.pl
+│       └── validation.pl
 │
 ├── auth/
 │   ├── usuarios.csv
@@ -155,25 +161,25 @@ agenda-contatos-prolog/
 
 ### Autenticação
 
-- `src/auth_db.pl`: mantém os fatos dinâmicos `usuario/2`.
-- `src/auth_repository.pl`: lê e salva `auth/usuarios.csv`.
-- `src/auth_service.pl`: valida cadastro, gera hash, autentica e resolve o caminho da agenda do usuário.
-- `src/auth_menu.pl`: apresenta login, cadastro e saída.
+- `src/db/auth_db.pl`: mantém os fatos dinâmicos `usuario/2`.
+- `src/repository/auth_repository.pl`: lê e salva `auth/usuarios.csv`.
+- `src/service/auth_service.pl`: valida cadastro, gera hash, autentica e resolve o caminho da agenda do usuário.
+- `src/menu/auth_menu.pl`: apresenta login, cadastro e saída.
 
 ### Contatos e grupos
 
-- `src/contato_db.pl`: controla os fatos dinâmicos `contato/5` da sessão atual.
-- `src/contato_repository.pl`: lê e salva o CSV de contatos do usuário autenticado.
-- `src/contato_service.pl`: implementa cadastro, edição, remoção e pesquisas.
-- `src/grupo_repository.pl`: reconstrói a visão lógica dos grupos a partir dos contatos.
-- `src/grupo_service.pl`: implementa adição, remoção, listagem e pesquisa por grupos.
+- `src/db/contato_db.pl`: controla os fatos dinâmicos `contato/5` da sessão atual.
+- `src/repository/contato_repository.pl`: lê e salva o CSV de contatos do usuário autenticado.
+- `src/service/contato_service.pl`: implementa cadastro, edição, remoção e pesquisas.
+- `src/repository/grupo_repository.pl`: reconstrói a visão lógica dos grupos a partir dos contatos.
+- `src/service/grupo_service.pl`: implementa adição, remoção, listagem e pesquisa por grupos.
 
 ### Infraestrutura da CLI
 
-- `src/input_utils.pl`: lê entradas, senhas, confirmações e exibe dados.
-- `src/validation.pl`: concentra validações puras de usuário, senha, contato e grupo.
-- `src/csv_utils.pl`: reúne operações genéricas de CSV e salvamento temporário.
-- `src/menu.pl`: coordena a agenda depois da autenticação.
+- `src/utils/input_utils.pl`: lê entradas, senhas, confirmações e exibe dados.
+- `src/utils/validation.pl`: concentra validações puras de usuário, senha, contato e grupo.
+- `src/csv/csv_utils.pl`: reúne operações genéricas de CSV e salvamento temporário.
+- `src/menu/menu.pl`: coordena a agenda depois da autenticação.
 - `app/main.pl`: inicializa usuários, executa autenticação, abre a agenda correta, salva e encerra.
 
 ---

@@ -36,6 +36,7 @@ salvar_csv_atomico(Caminho, Linhas, TempPath, Resultado) :-
     open(TempPath, write, Stream),
     escrever_linhas(Stream, Linhas),
     close(Stream),
+    ( exists_file(Caminho) -> delete_file(Caminho) ; true ),
     rename_file(TempPath, Caminho),
     Resultado = ok.
 
@@ -45,21 +46,21 @@ escrever_linhas(Stream, [Linha | Rest]) :-
     escrever_linhas(Stream, Rest).
 
 validar_cabecalho(Caminho, CabecalhoEsperado, ok) :-
-    exists_file(Caminho),
-    open(Caminho, read, Stream),
-    read_line_to_string(Stream, LinhaCabecalho),
-    close(Stream),
+    ler_primeira_linha_csv(Caminho, LinhaCabecalho),
     LinhaCabecalho = CabecalhoEsperado.
 
-validar_cabecalho(Caminho, _, erro(cabecalho_invalido(Caminho))) :-
-    exists_file(Caminho),
-    open(Caminho, read, Stream),
-    read_line_to_string(Stream, LinhaCabecalho),
-    close(Stream),
-    LinhaCabecalho \= _.
+validar_cabecalho(Caminho, CabecalhoEsperado, erro(cabecalho_invalido(Caminho))) :-
+    ler_primeira_linha_csv(Caminho, LinhaCabecalho),
+    LinhaCabecalho \= CabecalhoEsperado.
 
 validar_cabecalho(Caminho, _, erro(arquivo_inexistente(Caminho))) :-
     \+ exists_file(Caminho).
+
+ler_primeira_linha_csv(Caminho, LinhaCabecalho) :-
+    exists_file(Caminho),
+    open(Caminho, read, Stream),
+    read_line_to_string(Stream, LinhaCabecalho),
+    close(Stream).
 
 criar_diretorio_seguro(Caminho, ok) :-
     file_directory_name(Caminho, Diretorio),
