@@ -13,6 +13,7 @@
 ]).
 
 :- use_module('../db/contato_db.pl').
+:- use_module('../utils/validation.pl', [validar_telefone_brasil/1]).
 :- use_module(library(lists), [max_list/2, predsort/3]).
 
 % Retorna o proximo ID disponivel na base de contatos.
@@ -36,7 +37,7 @@ adicionar_contato(NomeBruto, TelefoneBruto, EmailBruto, GruposBrutos, Resultado)
         Resultado = erro("Nome nao pode ser vazio.")
     ; Telefone == "" ->
         Resultado = erro("Telefone nao pode ser vazio.")
-    ; \+ telefone_brasileiro_valido(Telefone) ->
+    ; \+ validar_telefone_brasil(Telefone) ->
         Resultado = erro("Telefone invalido para o padrao brasileiro.")
     ; proximo_id(Id),
       inserir_contato_db(contato(Id, Nome, Telefone, Email, GruposBrutos), Resultado)
@@ -95,7 +96,7 @@ editar_contato(TelefoneAtual, NomeBruto, TelefoneBruto, EmailBruto, Resultado) :
             Resultado = erro("Nome nao pode ser vazio.")
         ; NovoTelefone == "" ->
             Resultado = erro("Telefone nao pode ser vazio.")
-        ; \+ telefone_brasileiro_valido(NovoTelefone) ->
+        ; \+ validar_telefone_brasil(NovoTelefone) ->
             Resultado = erro("Telefone invalido para o padrao brasileiro.")
         ; atualizar_contato_db(
               Id,
@@ -149,22 +150,3 @@ remover_espacos_inicio([Codigo | Resto], Resultado) :-
     !,
     remover_espacos_inicio(Resto, Resultado).
 remover_espacos_inicio(Codigos, Codigos).
-
-% Aceita celular (11 digitos) e telefone fixo (10 digitos), com ou sem
-% pontuacao usual. O DDD e o primeiro digito nao podem ser zero.
-telefone_brasileiro_valido(Telefone) :-
-    string_codes(Telefone, Codigos),
-    include(codigo_digito, Codigos, Digitos),
-    maplist(codigo_telefone_permitido, Codigos),
-    length(Digitos, Quantidade),
-    memberchk(Quantidade, [10, 11]),
-    Digitos = [DDD1, _, PrimeiroNumero | _],
-    DDD1 =\= 0'0,
-    PrimeiroNumero =\= 0'0.
-
-codigo_digito(Codigo) :- code_type(Codigo, digit).
-
-codigo_telefone_permitido(Codigo) :-
-    ( code_type(Codigo, digit)
-    ; memberchk(Codigo, [0' , 0'(, 0'), 0'-, 0'.])
-    ).
