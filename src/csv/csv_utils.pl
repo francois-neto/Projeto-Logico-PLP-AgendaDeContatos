@@ -5,7 +5,7 @@ ler_csv_seguro(Caminho, CabecalhoEsperado, Linhas, Resultado) :-
         open(Caminho, read, Stream),
         read_line_to_string(Stream, LinhaCabecalhoBruta),
         normalizar_linha_csv(LinhaCabecalhoBruta, LinhaCabecalho),
-        normalizar_texto(CabecalhoEsperado, CabecalhoNormalizado),
+        normalizar_texto_csv(CabecalhoEsperado, CabecalhoNormalizado),
         ( LinhaCabecalho = end_of_file ->
             close(Stream),
             Resultado = erro(arquivo_vazio(Caminho))
@@ -50,7 +50,7 @@ escrever_linhas(Stream, [Linha | Rest]) :-
 
 validar_cabecalho(Caminho, CabecalhoEsperado, ok) :-
     ler_primeira_linha_csv(Caminho, LinhaCabecalho),
-    normalizar_texto(CabecalhoEsperado, CabecalhoNormalizado),
+    normalizar_texto_csv(CabecalhoEsperado, CabecalhoNormalizado),
     LinhaCabecalho = CabecalhoNormalizado,
     !.
 validar_cabecalho(Caminho, _, erro(cabecalho_invalido(Caminho))) :-
@@ -83,15 +83,17 @@ normalizar_linha_csv(LinhaBruta, LinhaNormalizada) :-
     excluir_codigo_cr(CodigosBrutos, CodigosLimpos),
     string_codes(LinhaNormalizada, CodigosLimpos).
 
-normalizar_texto(Texto, StringNormalizada) :-
+% Predicado interno: a normalização de entrada da aplicação pertence a
+% utils/validation.pl e possui semântica diferente (remove espaços externos).
+normalizar_texto_csv(Texto, StringNormalizada) :-
     string(Texto),
     !,
     StringNormalizada = Texto.
-normalizar_texto(Texto, StringNormalizada) :-
+normalizar_texto_csv(Texto, StringNormalizada) :-
     atom(Texto),
     !,
     atom_string(Texto, StringNormalizada).
-normalizar_texto(Texto, StringNormalizada) :-
+normalizar_texto_csv(Texto, StringNormalizada) :-
     term_string(Texto, StringNormalizada).
 
 excluir_codigo_cr([], []).

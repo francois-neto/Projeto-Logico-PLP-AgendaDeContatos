@@ -1,4 +1,5 @@
 :- consult('integration_test.pl').
+:- consult('validation_test.pl').
 :- consult('csv_utils_test.pl').
 :- consult('contato_db_test.pl').
 :- consult('contato_repository_test.pl').

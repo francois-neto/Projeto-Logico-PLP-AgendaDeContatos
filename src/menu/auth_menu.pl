@@ -1,4 +1,5 @@
 :- consult('../service/auth_service.pl').
+:- consult('../utils/input_utils.pl').
 
 /**
  * Executa o menu de autenticacao no terminal.
@@ -21,10 +22,8 @@ menu_autenticacao(Resultado) :-
  * @return Verdadeiro quando a tentativa e processada.
  */
 fluxo_login(Resultado) :-
-    format('Usuario: '),
-    read_line_to_string(user_input, Usuario),
-    format('Senha: '),
-    read_line_to_string(user_input, Senha),
+    ler_texto_opcional('Usuario: ', Usuario),
+    ler_senha('Senha: ', Senha),
     autenticar_usuario(Usuario, Senha, ResultadoAutenticacao),
     tratar_resultado_login(ResultadoAutenticacao, Resultado).
 
@@ -35,12 +34,9 @@ fluxo_login(Resultado) :-
  * @return Verdadeiro quando o cadastro e processado.
  */
 fluxo_cadastro(repetir) :-
-    format('Novo usuario: '),
-    read_line_to_string(user_input, Usuario),
-    format('Senha: '),
-    read_line_to_string(user_input, Senha),
-    format('Confirmacao: '),
-    read_line_to_string(user_input, Confirmacao),
+    ler_texto_opcional('Novo usuario: ', Usuario),
+    ler_senha('Senha: ', Senha),
+    ler_senha('Confirmacao: ', Confirmacao),
     cadastrar_usuario(Usuario, Senha, Confirmacao, ResultadoCadastro),
     exibir_resultado_cadastro(ResultadoCadastro).
 
@@ -69,5 +65,4 @@ exibir_menu_autenticacao :-
     format('0. Sair~n', []).
 
 ler_opcao_autenticacao(Opcao) :-
-    format('Escolha uma opcao: '),
-    read_line_to_string(user_input, Opcao).
+    ler_texto_opcional('Escolha uma opcao: ', Opcao).

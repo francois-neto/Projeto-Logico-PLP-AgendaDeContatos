@@ -1,4 +1,5 @@
 :- consult('../db/contato_db.pl').
+:- consult('../utils/input_utils.pl').
 
 /**
  * Executa o menu principal da agenda para uma sessao autenticada.
@@ -55,16 +56,6 @@ listar_contatos_menu :-
     snapshot_contatos(Contatos),
     exibir_contatos(Contatos).
 
-exibir_contatos([]) :-
-    format('Nenhum contato carregado.~n').
-exibir_contatos([Contato | Restante]) :-
-    exibir_contato(Contato),
-    exibir_contatos(Restante).
-
-exibir_contato(contato(Id, Nome, Telefone, Email, Grupos)) :-
-    format('ID: ~w | Nome: ~w | Telefone: ~w | Email: ~w | Grupos: ~w~n',
-           [Id, Nome, Telefone, Email, Grupos]).
-
 exibir_menu_principal(sessao(Usuario, _)) :-
     format('~nAGENDA DE CONTATOS~n', []),
     format('Usuario: ~w~n', [Usuario]),
@@ -78,5 +69,4 @@ exibir_menu_principal(sessao(Usuario, _)) :-
     format('0. Salvar e sair~n', []).
 
 ler_opcao_menu(Opcao) :-
-    format('Escolha uma opcao: '),
-    read_line_to_string(user_input, Opcao).
+    ler_texto_opcional('Escolha uma opcao: ', Opcao).
