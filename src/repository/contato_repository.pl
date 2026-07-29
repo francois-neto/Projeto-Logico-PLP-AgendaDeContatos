@@ -1,4 +1,4 @@
-% Pessoa 1 - persistência de contatos em CSV individual por usuário.
+% Pessoa 1 - persistencia de contatos em CSV individual por usuario.
 
 :- use_module('../csv/csv_utils.pl').
 
@@ -24,28 +24,36 @@ carregar_contatos_csv(Caminho, Resultado) :-
 
 salvar_contatos_csv(Caminho, Contatos, Resultado) :-
     maplist(contato_para_linha, Contatos, Linhas),
-    append([["id,nome,telefone,email,grupos"], Linhas], Conteudo),
+    Conteudo = ["id,nome,telefone,email,grupos" | Linhas],
     atomic_list_concat([Caminho, '.tmp'], TempPath),
     salvar_csv_atomico(Caminho, Conteudo, TempPath, Resultado).
 
 linha_para_contato(Linha, contato(Id, Nome, Telefone, Email, Grupos)) :-
     split_string(Linha, ",", "", Campos),
-    Campos = [IdTexto, Nome, Telefone, Email, GruposTexto],
+    Campos = [IdTexto, NomeTexto, TelefoneTexto, EmailTexto, GruposTexto],
     number_string(Id, IdTexto),
+    atom_string(Nome, NomeTexto),
+    atom_string(Telefone, TelefoneTexto),
+    atom_string(Email, EmailTexto),
     desserializar_grupos(GruposTexto, Grupos).
 
 contato_para_linha(contato(Id, Nome, Telefone, Email, Grupos), Linha) :-
     number_string(Id, IdTexto),
+    atom_string(NomeAtom, Nome),
+    atom_string(TelefoneAtom, Telefone),
+    atom_string(EmailAtom, Email),
     serializar_grupos(Grupos, GruposTexto),
-    atomic_list_concat([IdTexto, Nome, Telefone, Email, GruposTexto], ',', Linha).
+    atomic_list_concat([IdTexto, NomeAtom, TelefoneAtom, EmailAtom, GruposTexto], ',', Linha).
 
 serializar_grupos([], "").
 serializar_grupos(Grupos, Texto) :-
-    atomic_list_concat(Grupos, '|', Texto).
+    maplist(atom_string, GruposAtoms, Grupos),
+    atomic_list_concat(GruposAtoms, '|', Texto).
 
 desserializar_grupos("", []).
 desserializar_grupos(Texto, Grupos) :-
-    split_string(Texto, "|", "", Grupos).
+    split_string(Texto, "|", "", GruposTexto),
+    maplist(atom_string, Grupos, GruposTexto).
 
 criar_csv_contatos_vazio(Caminho, Resultado) :-
     criar_diretorio_seguro(Caminho, _),
