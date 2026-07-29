@@ -990,3 +990,21 @@ Prolog permite representar essas relações diretamente. A aplicação utiliza:
 - `ESTRUTURA_DO_PROJETO.md`: descrição dos diretórios e módulos.
 - `test/integration_test.pl`: cenários integrados.
 - `auth/usuarios.backup.csv`: cópia de segurança da base de usuários.
+
+---
+
+## Status da implementacao atual
+
+Nesta etapa foram implementadas as responsabilidades da **Pessoa 5** e a parte funcional de **autenticacao com hash de senha** necessaria para a integracao:
+
+- `app/main.pl`: ciclo principal, carga inicial, abertura de sessao, logout e encerramento;
+- `src/menu/auth_menu.pl`: fluxo CLI de login, cadastro e saida;
+- `src/menu/menu.pl`: menu principal, listagem da agenda carregada e navegacao de sessao;
+- `src/db/auth_db.pl`: base dinamica de usuarios;
+- `src/repository/auth_repository.pl`: leitura e escrita de `auth/usuarios.csv`;
+- `src/service/auth_service.pl`: cadastro, hash de senha, login, criacao de sessao e isolamento por usuario.
+
+O hash da senha e persistido em `auth/usuarios.csv`. O valor armazenado nao corresponde ao texto puro informado no cadastro.
+
+As funcionalidades de CRUD detalhado de contatos e de grupos continuam separadas nos modulos das Pessoas 2 e 3. O menu principal preserva essa separacao e nao desloca essas regras para a camada de interface.
+
