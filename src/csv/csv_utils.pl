@@ -1,14 +1,16 @@
-% Pessoa 1 - utilidades genéricas de leitura/escrita CSV, arquivos temporários e criação de diretórios.
+% Pessoa 1 - utilidades genericas de leitura/escrita CSV, arquivos temporarios e criacao de diretorios.
 
 ler_csv_seguro(Caminho, CabecalhoEsperado, Linhas, Resultado) :-
     ( exists_file(Caminho) ->
         open(Caminho, read, Stream),
-        read_line_to_string(Stream, LinhaCabecalho),
+        read_line_to_string(Stream, LinhaCabecalhoBruta),
+        normalizar_linha_csv(LinhaCabecalhoBruta, LinhaCabecalho),
+        normalizar_texto(CabecalhoEsperado, CabecalhoNormalizado),
         ( LinhaCabecalho = end_of_file ->
             close(Stream),
             Resultado = erro(arquivo_vazio(Caminho))
         ;
-            ( LinhaCabecalho = CabecalhoEsperado ->
+            ( LinhaCabecalho = CabecalhoNormalizado ->
                 ler_linhas_restantes(Stream, Linhas),
                 close(Stream),
                 Resultado = ok(Linhas)
@@ -22,7 +24,8 @@ ler_csv_seguro(Caminho, CabecalhoEsperado, Linhas, Resultado) :-
     ).
 
 ler_linhas_restantes(Stream, Linhas) :-
-    read_line_to_string(Stream, Linha),
+    read_line_to_string(Stream, LinhaBruta),
+    normalizar_linha_csv(LinhaBruta, Linha),
     ( Linha = end_of_file ->
         Linhas = []
     ;
@@ -42,25 +45,25 @@ salvar_csv_atomico(Caminho, Linhas, TempPath, Resultado) :-
 
 escrever_linhas(_, []).
 escrever_linhas(Stream, [Linha | Rest]) :-
-    format(Stream, '~s~n', [Linha]),
+    format(Stream, '~w~n', [Linha]),
     escrever_linhas(Stream, Rest).
 
 validar_cabecalho(Caminho, CabecalhoEsperado, ok) :-
     ler_primeira_linha_csv(Caminho, LinhaCabecalho),
-    LinhaCabecalho = CabecalhoEsperado.
-
-validar_cabecalho(Caminho, CabecalhoEsperado, erro(cabecalho_invalido(Caminho))) :-
-    ler_primeira_linha_csv(Caminho, LinhaCabecalho),
-    LinhaCabecalho \= CabecalhoEsperado.
-
-validar_cabecalho(Caminho, _, erro(arquivo_inexistente(Caminho))) :-
-    \+ exists_file(Caminho).
+    normalizar_texto(CabecalhoEsperado, CabecalhoNormalizado),
+    LinhaCabecalho = CabecalhoNormalizado,
+    !.
+validar_cabecalho(Caminho, _, erro(cabecalho_invalido(Caminho))) :-
+    exists_file(Caminho),
+    !.
+validar_cabecalho(Caminho, _, erro(arquivo_inexistente(Caminho))).
 
 ler_primeira_linha_csv(Caminho, LinhaCabecalho) :-
     exists_file(Caminho),
     open(Caminho, read, Stream),
-    read_line_to_string(Stream, LinhaCabecalho),
-    close(Stream).
+    read_line_to_string(Stream, LinhaBruta),
+    close(Stream),
+    normalizar_linha_csv(LinhaBruta, LinhaCabecalho).
 
 criar_diretorio_seguro(Caminho, ok) :-
     file_directory_name(Caminho, Diretorio),
@@ -73,3 +76,27 @@ criar_diretorio_seguro(Caminho, ok) :-
             make_directory_path(Diretorio)
         )
     ).
+
+normalizar_linha_csv(end_of_file, end_of_file).
+normalizar_linha_csv(LinhaBruta, LinhaNormalizada) :-
+    string_codes(LinhaBruta, CodigosBrutos),
+    excluir_codigo_cr(CodigosBrutos, CodigosLimpos),
+    string_codes(LinhaNormalizada, CodigosLimpos).
+
+normalizar_texto(Texto, StringNormalizada) :-
+    string(Texto),
+    !,
+    StringNormalizada = Texto.
+normalizar_texto(Texto, StringNormalizada) :-
+    atom(Texto),
+    !,
+    atom_string(Texto, StringNormalizada).
+normalizar_texto(Texto, StringNormalizada) :-
+    term_string(Texto, StringNormalizada).
+
+excluir_codigo_cr([], []).
+excluir_codigo_cr([13 | Resto], Limpos) :-
+    excluir_codigo_cr(Resto, Limpos).
+excluir_codigo_cr([Codigo | Resto], [Codigo | Limpos]) :-
+    Codigo =\= 13,
+    excluir_codigo_cr(Resto, Limpos).
