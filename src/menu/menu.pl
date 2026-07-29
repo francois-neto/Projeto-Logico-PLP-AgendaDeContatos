@@ -1,4 +1,6 @@
 :- consult('../db/contato_db.pl').
+:- consult('../service/contato_service.pl').
+:- consult('../utils/input_utils.pl').
 
 /**
  * Executa o menu principal da agenda para uma sessao autenticada.
@@ -23,7 +25,12 @@ menu_principal(Sessao, AcaoFinal) :-
  * @return Verdadeiro quando a navegacao retorna ao menu anterior.
  */
 menu_pesquisa(continuar) :-
-    format('Pesquisa depende do servico de contatos da pessoa 2.~n').
+    repeat,
+    format('~nPESQUISAR CONTATO~n1. Nome~n2. Telefone~n3. ID~n0. Voltar~n', []),
+    ler_texto_opcional('Escolha uma opcao: ', Opcao),
+    tratar_opcao_pesquisa(Opcao, Resultado),
+    Resultado \= continuar_pesquisa,
+    !.
 
 /**
  * Executa o submenu de grupos.
@@ -37,11 +44,11 @@ menu_grupos(continuar) :-
 tratar_opcao_menu("1", continuar) :-
     listar_contatos_menu.
 tratar_opcao_menu("2", continuar) :-
-    format('Cadastro de contato depende do servico da pessoa 2.~n').
+    fluxo_cadastro_contato.
 tratar_opcao_menu("3", continuar) :-
-    format('Edicao de contato depende do servico da pessoa 2.~n').
+    fluxo_edicao_contato.
 tratar_opcao_menu("4", continuar) :-
-    format('Remocao de contato depende do servico da pessoa 2.~n').
+    fluxo_remocao_contato.
 tratar_opcao_menu("5", continuar) :-
     menu_pesquisa(_).
 tratar_opcao_menu("6", continuar) :-
@@ -52,18 +59,40 @@ tratar_opcao_menu(_, continuar) :-
     format('Opcao invalida.~n').
 
 listar_contatos_menu :-
-    snapshot_contatos(Contatos),
+    listar_contatos_ordenados(Contatos),
     exibir_contatos(Contatos).
 
-exibir_contatos([]) :-
-    format('Nenhum contato carregado.~n').
-exibir_contatos([Contato | Restante]) :-
-    exibir_contato(Contato),
-    exibir_contatos(Restante).
+fluxo_cadastro_contato :-
+    ler_texto_nao_vazio('Nome: ', Nome),
+    ler_texto_nao_vazio('Telefone: ', Telefone),
+    ler_texto_opcional('E-mail (opcional): ', Email),
+    cadastrar_contato(Nome, Telefone, Email, [], Resultado),
+    exibir_resultado(Resultado).
 
-exibir_contato(contato(Id, Nome, Telefone, Email, Grupos)) :-
-    format('ID: ~w | Nome: ~w | Telefone: ~w | Email: ~w | Grupos: ~w~n',
-           [Id, Nome, Telefone, Email, Grupos]).
+fluxo_edicao_contato :-
+    ler_texto_nao_vazio('Telefone atual: ', TelefoneAtual),
+    ler_texto_nao_vazio('Novo nome: ', Nome),
+    ler_texto_nao_vazio('Novo telefone: ', Telefone),
+    ler_texto_opcional('Novo e-mail (opcional): ', Email),
+    editar_contato(TelefoneAtual, Nome, Telefone, Email, Resultado),
+    exibir_resultado(Resultado).
+
+fluxo_remocao_contato :-
+    ler_inteiro('ID do contato: ', Id),
+    confirmar('Confirmar remocao? (sim/nao): ', Confirmacao),
+    ( Confirmacao == sim -> remover_contato(Id, Resultado), exibir_resultado(Resultado)
+    ; format('Remocao cancelada.~n')
+    ).
+
+tratar_opcao_pesquisa("1", continuar_pesquisa) :-
+    ler_texto_nao_vazio('Nome: ', Nome), buscar_por_nome(Nome, Contatos), exibir_contatos(Contatos).
+tratar_opcao_pesquisa("2", continuar_pesquisa) :-
+    ler_texto_nao_vazio('Telefone: ', Telefone), buscar_por_telefone(Telefone, Contatos), exibir_contatos(Contatos).
+tratar_opcao_pesquisa("3", continuar_pesquisa) :-
+    ler_inteiro('ID: ', Id),
+    ( buscar_por_id(Id, Contato) -> exibir_contato(Contato) ; format('Contato nao encontrado.~n') ).
+tratar_opcao_pesquisa("0", voltar).
+tratar_opcao_pesquisa(_, continuar_pesquisa) :- format('Opcao invalida.~n').
 
 exibir_menu_principal(sessao(Usuario, _)) :-
     format('~nAGENDA DE CONTATOS~n', []),
@@ -78,5 +107,4 @@ exibir_menu_principal(sessao(Usuario, _)) :-
     format('0. Salvar e sair~n', []).
 
 ler_opcao_menu(Opcao) :-
-    format('Escolha uma opcao: '),
-    read_line_to_string(user_input, Opcao).
+    ler_texto_opcional('Escolha uma opcao: ', Opcao).

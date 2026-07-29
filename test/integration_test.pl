@@ -17,6 +17,16 @@ test(cadastro_persiste_hash_e_autentica, [setup(setup_auth_env(Contexto)), clean
     autenticar_usuario("ana", "senha123", ResultadoLogin),
     assertion(ResultadoLogin = ok(sessao("ana", _))).
 
+test(cadastro_rejeita_usuario_inseguro, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
+    cadastrar_usuario("../admin", "senha123", "senha123", Resultado),
+    assertion(Resultado == erro(usuario_invalido)),
+    snapshot_usuarios(Usuarios),
+    assertion(Usuarios == []).
+
+test(criar_sessao_rejeita_usuario_inseguro, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
+    criar_sessao("../admin", Resultado),
+    assertion(Resultado == erro(usuario_invalido)).
+
 test(isolamento_entre_usuarios, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
     cadastrar_usuario("ana", "senha123", "senha123", ok("ana")),
     cadastrar_usuario("bob", "senha123", "senha123", ok("bob")),

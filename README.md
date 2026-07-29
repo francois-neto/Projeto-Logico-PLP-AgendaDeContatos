@@ -995,7 +995,7 @@ Prolog permite representar essas relações diretamente. A aplicação utiliza:
 
 ## Status da implementacao atual
 
-Nesta etapa foram implementadas as responsabilidades da **Pessoa 5** e a parte funcional de **autenticacao com hash de senha** necessaria para a integracao:
+Nesta etapa foram implementadas as responsabilidades de infraestrutura da **Pessoa 4** e a parte de autenticação, sessão e integração da **Pessoa 5** que não depende dos serviços de contatos e grupos:
 
 - `app/main.pl`: ciclo principal, carga inicial, abertura de sessao, logout e encerramento;
 - `src/menu/auth_menu.pl`: fluxo CLI de login, cadastro e saida;
@@ -1003,8 +1003,10 @@ Nesta etapa foram implementadas as responsabilidades da **Pessoa 5** e a parte f
 - `src/db/auth_db.pl`: base dinamica de usuarios;
 - `src/repository/auth_repository.pl`: leitura e escrita de `auth/usuarios.csv`;
 - `src/service/auth_service.pl`: cadastro, hash de senha, login, criacao de sessao e isolamento por usuario.
+- `src/utils/validation.pl`: validações puras de usuário, senha, contato, telefone, e-mail e grupo.
+- `src/utils/input_utils.pl`: leitura textual segura, confirmação, leitura de listas de grupos e apresentação de resultados.
 
 O hash da senha e persistido em `auth/usuarios.csv`. O valor armazenado nao corresponde ao texto puro informado no cadastro.
 
-As funcionalidades de CRUD detalhado de contatos e de grupos continuam separadas nos modulos das Pessoas 2 e 3. O menu principal preserva essa separacao e nao desloca essas regras para a camada de interface.
+As funcionalidades de CRUD detalhado de contatos e de grupos continuam separadas nos modulos das Pessoas 2 e 3, que ainda estão marcados como `TODO`. Por isso, as opções correspondentes no menu exibem a indisponibilidade até que seus contratos sejam implementados; o menu principal preserva essa separação e não desloca regras de negócio para a interface.
 

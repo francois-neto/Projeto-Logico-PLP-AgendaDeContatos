@@ -2,6 +2,11 @@
 :- consult('../db/auth_db.pl').
 :- consult('../repository/auth_repository.pl').
 :- consult('../repository/contato_repository.pl').
+:- use_module('../utils/validation.pl', [
+    normalizar_texto/2,
+    validar_usuario/2,
+    validar_senha/3
+]).
 
 :- dynamic auth_config/2.
 
@@ -42,8 +47,8 @@ caminho_usuarios_atual(CaminhoUsuarios) :-
  * @return Verdadeiro quando o valor normalizado e produzido.
  */
 normalizar_usuario(UsuarioBruto, UsuarioNormalizado) :-
-    string_lower(UsuarioBruto, UsuarioMinusculo),
-    normalize_space(string(UsuarioNormalizado), UsuarioMinusculo).
+    normalizar_texto(UsuarioBruto, UsuarioTexto),
+    string_lower(UsuarioTexto, UsuarioNormalizado).
 
 /**
  * Cadastra um novo usuario e inicializa sua agenda isolada.
@@ -101,9 +106,15 @@ autenticar_usuario(Usuario, Senha, Resultado) :-
  * @param Resultado Termo com a sessao resolvida.
  * @return `ok(sessao(Usuario,Caminho))` quando a agenda do usuario esta acessivel.
  */
-criar_sessao(Usuario, ok(sessao(Usuario, CaminhoContatos))) :-
-    inicializar_agenda_usuario(Usuario, ok),
-    resolver_caminho_contatos(Usuario, CaminhoContatos).
+criar_sessao(Usuario, Resultado) :-
+    ( resolver_caminho_contatos(Usuario, CaminhoContatos) ->
+        inicializar_agenda_usuario(Usuario, ResultadoAgenda),
+        resultado_criacao_sessao(ResultadoAgenda, Usuario, CaminhoContatos, Resultado)
+    ; Resultado = erro(usuario_invalido)
+    ).
+
+resultado_criacao_sessao(ok, Usuario, CaminhoContatos, ok(sessao(Usuario, CaminhoContatos))).
+resultado_criacao_sessao(erro(Codigo), _, _, erro(Codigo)).
 
 /**
  * Resolve o caminho do arquivo de contatos do usuario.
@@ -113,6 +124,7 @@ criar_sessao(Usuario, ok(sessao(Usuario, CaminhoContatos))) :-
  * @return Verdadeiro quando o caminho e construido.
  */
 resolver_caminho_contatos(Usuario, CaminhoContatos) :-
+    validar_usuario(Usuario, ok),
     auth_paths(_, DiretorioDados),
     atomic_list_concat([DiretorioDados, '/', Usuario, '/contatos.csv'], CaminhoContatos).
 
@@ -141,29 +153,6 @@ validar_cadastro(UsuarioNormalizado, _, _, erro(Codigo)) :-
     validar_usuario(UsuarioNormalizado, erro(Codigo)).
 validar_cadastro(_, Senha, Confirmacao, erro(Codigo)) :-
     validar_senha(Senha, Confirmacao, erro(Codigo)).
-
-validar_usuario(UsuarioNormalizado, ok) :-
-    string_length(UsuarioNormalizado, Tamanho),
-    Tamanho >= 3,
-    Tamanho =< 30,
-    string_codes(UsuarioNormalizado, Codigos),
-    Codigos \= [],
-    maplist(codigo_usuario_valido, Codigos).
-validar_usuario(_, erro(usuario_invalido)).
-
-validar_senha(Senha, Confirmacao, ok) :-
-    Senha == Confirmacao,
-    string_length(Senha, Tamanho),
-    Tamanho >= 8.
-validar_senha(Senha, Confirmacao, erro(confirmacao_senha_invalida)) :-
-    Senha \== Confirmacao.
-validar_senha(Senha, _, erro(senha_muito_curta)) :-
-    string_length(Senha, Tamanho),
-    Tamanho < 8.
-
-codigo_usuario_valido(Codigo) :-
-    code_type(Codigo, alnum).
-codigo_usuario_valido(0'_).
 
 auth_paths(CaminhoUsuarios, DiretorioDados) :-
     auth_config(CaminhoUsuarios, DiretorioDados),
