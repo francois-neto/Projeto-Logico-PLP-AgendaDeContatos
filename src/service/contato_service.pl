@@ -1,20 +1,11 @@
-:- module(contato_service, [
-    proximo_id/1,
-    adicionar_contato/5,
-    cadastrar_contato/5,
-    buscar_por_id/2,
-    buscar_contato_por_telefone/2,
-    buscar_por_nome/2,
-    buscar_por_telefone/2,
-    editar_contato/5,
-    remover_contato/2,
-    ordenar_por_nome/1,
-    listar_contatos_ordenados/1
+:- consult('../db/contato_db.pl').
+:- use_module('../utils/validation.pl', [
+    validar_nome_contato/2,
+    validar_telefone/2,
+    validar_email/2,
+    validar_grupo/2
 ]).
-
-:- use_module('../db/contato_db.pl').
-:- use_module('../utils/validation.pl', [validar_telefone_brasil/1]).
-:- use_module(library(lists), [max_list/2, predsort/3]).
+:- use_module(library(lists), [max_list/2]).
 
 % Retorna o proximo ID disponivel na base de contatos.
 proximo_id(ProximoId) :-
@@ -33,12 +24,9 @@ adicionar_contato(NomeBruto, TelefoneBruto, EmailBruto, GruposBrutos, Resultado)
     texto_limpo(NomeBruto, Nome),
     texto_limpo(TelefoneBruto, Telefone),
     texto_limpo(EmailBruto, Email),
-    ( Nome == "" ->
-        Resultado = erro("Nome nao pode ser vazio.")
-    ; Telefone == "" ->
-        Resultado = erro("Telefone nao pode ser vazio.")
-    ; \+ validar_telefone_brasil(Telefone) ->
-        Resultado = erro("Telefone invalido para o padrao brasileiro.")
+    validar_campos_contato(Nome, Telefone, Email, GruposBrutos, ResultadoValidacao),
+    ( ResultadoValidacao = erro(_) ->
+        Resultado = ResultadoValidacao
     ; proximo_id(Id),
       inserir_contato_db(contato(Id, Nome, Telefone, Email, GruposBrutos), Resultado)
     ).
@@ -53,22 +41,22 @@ buscar_por_id(Id, Contato) :-
     Contato = contato(Id, Nome, Telefone, Email, Grupos),
     !.
 
-% Busca exata pelo telefone, desconsiderando espacos nas extremidades.
+% Busca exata pelo telefone, desconsiderando espaços e formatação.
 buscar_contato_por_telefone(TelefoneBruto, Contato) :-
-    texto_limpo(TelefoneBruto, TelefoneBuscado),
+    telefone_para_comparacao(TelefoneBruto, TelefoneBuscado),
     contato(Id, Nome, TelefoneAtual, Email, Grupos),
-    texto_limpo(TelefoneAtual, TelefoneNormalizado),
+    telefone_para_comparacao(TelefoneAtual, TelefoneNormalizado),
     TelefoneNormalizado == TelefoneBuscado,
     Contato = contato(Id, Nome, TelefoneAtual, Email, Grupos),
     !.
 
 % Retorna todos os contatos cujo nome contem a consulta, sem diferenciar caixa.
 buscar_por_nome(ConsultaBruta, Contatos) :-
-    normalizar_texto(ConsultaBruta, Consulta),
+    normalizar_texto_contato(ConsultaBruta, Consulta),
     findall(
         contato(Id, Nome, Telefone, Email, Grupos),
         ( contato(Id, Nome, Telefone, Email, Grupos),
-          normalizar_texto(Nome, NomeNormalizado),
+          normalizar_texto_contato(Nome, NomeNormalizado),
           sub_string(NomeNormalizado, _, _, _, Consulta)
         ),
         Contatos
@@ -76,11 +64,11 @@ buscar_por_nome(ConsultaBruta, Contatos) :-
 
 % Retorna todos os contatos cujo telefone contem a consulta.
 buscar_por_telefone(ConsultaBruta, Contatos) :-
-    texto_limpo(ConsultaBruta, Consulta),
+    telefone_para_comparacao(ConsultaBruta, Consulta),
     findall(
         contato(Id, Nome, Telefone, Email, Grupos),
         ( contato(Id, Nome, Telefone, Email, Grupos),
-          texto_limpo(Telefone, TelefoneNormalizado),
+          telefone_para_comparacao(Telefone, TelefoneNormalizado),
           sub_string(TelefoneNormalizado, _, _, _, Consulta)
         ),
         Contatos
@@ -92,12 +80,9 @@ editar_contato(TelefoneAtual, NomeBruto, TelefoneBruto, EmailBruto, Resultado) :
         texto_limpo(NomeBruto, Nome),
         texto_limpo(TelefoneBruto, NovoTelefone),
         texto_limpo(EmailBruto, Email),
-        ( Nome == "" ->
-            Resultado = erro("Nome nao pode ser vazio.")
-        ; NovoTelefone == "" ->
-            Resultado = erro("Telefone nao pode ser vazio.")
-        ; \+ validar_telefone_brasil(NovoTelefone) ->
-            Resultado = erro("Telefone invalido para o padrao brasileiro.")
+        validar_campos_contato(Nome, NovoTelefone, Email, Grupos, ResultadoValidacao),
+        ( ResultadoValidacao = erro(_) ->
+            Resultado = ResultadoValidacao
         ; atualizar_contato_db(
               Id,
               contato(Id, Nome, NovoTelefone, Email, Grupos),
@@ -123,14 +108,42 @@ listar_contatos_ordenados(Contatos) :-
     ordenar_por_nome(Contatos).
 
 comparar_contatos_por_nome(Ordem, contato(IdA, NomeA, _, _, _), contato(IdB, NomeB, _, _, _)) :-
-    normalizar_texto(NomeA, NomeNormalizadoA),
-    normalizar_texto(NomeB, NomeNormalizadoB),
+    normalizar_texto_contato(NomeA, NomeNormalizadoA),
+    normalizar_texto_contato(NomeB, NomeNormalizadoB),
     compare(OrdemNome, NomeNormalizadoA, NomeNormalizadoB),
     ( OrdemNome == (=) -> compare(Ordem, IdA, IdB) ; Ordem = OrdemNome ).
 
-normalizar_texto(TextoBruto, Normalizado) :-
+normalizar_texto_contato(TextoBruto, Normalizado) :-
     texto_limpo(TextoBruto, Limpo),
     string_lower(Limpo, Normalizado).
+
+telefone_para_comparacao(TelefoneBruto, Normalizado) :-
+    texto_limpo(TelefoneBruto, Texto),
+    string_codes(Texto, Codigos),
+    include(codigo_digito, Codigos, Digitos),
+    string_codes(Normalizado, Digitos).
+
+codigo_digito(Codigo) :- code_type(Codigo, digit).
+
+validar_campos_contato(Nome, Telefone, Email, Grupos, ok) :-
+    validar_nome_contato(Nome, ok),
+    validar_telefone(Telefone, ok),
+    validar_email(Email, ok),
+    grupos_validos(Grupos),
+    !.
+validar_campos_contato(Nome, _, _, _, erro(Codigo)) :-
+    validar_nome_contato(Nome, erro(Codigo)), !.
+validar_campos_contato(_, Telefone, _, _, erro(Codigo)) :-
+    validar_telefone(Telefone, erro(Codigo)), !.
+validar_campos_contato(_, _, Email, _, erro(Codigo)) :-
+    validar_email(Email, erro(Codigo)), !.
+validar_campos_contato(_, _, _, _, erro(grupo_invalido)).
+
+grupos_validos(Grupos) :-
+    is_list(Grupos),
+    maplist(grupo_valido, Grupos).
+
+grupo_valido(Grupo) :- validar_grupo(Grupo, ok).
 
 texto_limpo(TextoBruto, Limpo) :-
     ( string(TextoBruto) -> Texto = TextoBruto
