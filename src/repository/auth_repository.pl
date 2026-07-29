@@ -17,7 +17,9 @@ carregar_usuarios_csv(Caminho, Resultado) :-
     ).
 
 tratar_leitura_usuarios(Linhas, ok(Linhas), ok(Usuarios)) :-
-    maplist(linha_para_usuario, Linhas, Usuarios).
+    maplist(linha_para_usuario, Linhas, Usuarios),
+    !.
+tratar_leitura_usuarios(_, ok(_), erro(csv_usuarios_invalido)).
 tratar_leitura_usuarios(_, erro(Codigo), erro(Codigo)).
 
 tratar_criacao_arquivo_usuarios(ok, ok([])).

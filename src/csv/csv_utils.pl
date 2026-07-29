@@ -34,14 +34,32 @@ ler_linhas_restantes(Stream, Linhas) :-
     ).
 
 salvar_csv_atomico(Caminho, Linhas, TempPath, Resultado) :-
-    criar_diretorio_seguro(Caminho, _),
-    ( exists_file(TempPath) -> delete_file(TempPath) ; true ),
-    open(TempPath, write, Stream),
-    escrever_linhas(Stream, Linhas),
-    close(Stream),
-    ( exists_file(Caminho) -> delete_file(Caminho) ; true ),
-    rename_file(TempPath, Caminho),
-    Resultado = ok.
+    catch(salvar_csv_com_backup(Caminho, Linhas, TempPath), Erro,
+          ( limpar_temporario(TempPath), Resultado = erro(falha_salvamento(Erro)) )),
+    ( var(Resultado) -> Resultado = ok ; true ).
+
+salvar_csv_com_backup(Caminho, Linhas, TempPath) :-
+    criar_diretorio_seguro(Caminho, ok),
+    limpar_temporario(TempPath),
+    setup_call_cleanup(
+        open(TempPath, write, Stream),
+        escrever_linhas(Stream, Linhas),
+        close(Stream)
+    ),
+    substituir_arquivo_preservando_backup(Caminho, TempPath).
+
+substituir_arquivo_preservando_backup(Caminho, TempPath) :-
+    atomic_list_concat([Caminho, '.backup'], BackupPath),
+    limpar_temporario(BackupPath),
+    ( exists_file(Caminho) -> rename_file(Caminho, BackupPath) ; true ),
+    catch(rename_file(TempPath, Caminho), Erro,
+          ( restaurar_backup(Caminho, BackupPath), throw(Erro) )),
+    limpar_temporario(BackupPath).
+
+restaurar_backup(Caminho, BackupPath) :-
+    ( exists_file(BackupPath), \+ exists_file(Caminho) -> rename_file(BackupPath, Caminho) ; true ).
+
+limpar_temporario(Caminho) :- ( exists_file(Caminho) -> delete_file(Caminho) ; true ).
 
 escrever_linhas(_, []).
 escrever_linhas(Stream, [Linha | Rest]) :-

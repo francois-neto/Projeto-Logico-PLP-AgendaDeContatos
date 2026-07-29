@@ -120,11 +120,14 @@ tratar_sessao_aberta(_, erro(Codigo)) :-
 
 tratar_acao_final(Sessao, logout) :-
     encerrar_sessao(Sessao, Resultado),
-    exibir_resultado_final(Resultado),
-    ciclo_autenticacao.
+    tratar_logout(Resultado).
 tratar_acao_final(Sessao, encerrar) :-
     encerrar_sessao(Sessao, Resultado),
     exibir_resultado_final(Resultado).
+
+tratar_logout(ok) :- ciclo_autenticacao.
+tratar_logout(erro(Codigo)) :-
+    format('Falha ao salvar agenda; a troca de usuario foi cancelada: ~w~n', [Codigo]).
 
 exibir_resultado_final(ok).
 exibir_resultado_final(erro(Codigo)) :-
