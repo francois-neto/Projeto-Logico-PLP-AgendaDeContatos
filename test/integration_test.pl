@@ -1,5 +1,6 @@
 :- use_module(library(plunit)).
 :- use_module(library(filesex)).
+:- use_module(library(crypto)).
 
 :- consult('../src/db/auth_db.pl').
 :- consult('../src/db/contato_db.pl').
@@ -9,7 +10,7 @@
 :- begin_tests(integration).
 
 test(cadastro_persiste_hash_e_autentica, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
-    cadastrar_usuario("ana", "senha123", "senha123", ResultadoCadastro),
+    cadastrar_usuario("ana", "senha123", ResultadoCadastro),
     assertion(ResultadoCadastro == ok("ana")),
     snapshot_usuarios(Usuarios),
     assertion(Usuarios = [usuario("ana", HashSenha)]),
@@ -17,19 +18,25 @@ test(cadastro_persiste_hash_e_autentica, [setup(setup_auth_env(Contexto)), clean
     autenticar_usuario("ana", "senha123", ResultadoLogin),
     assertion(ResultadoLogin = ok(sessao("ana", _))).
 
-test(cadastro_rejeita_usuario_inseguro, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
-    cadastrar_usuario("../admin", "senha123", "senha123", Resultado),
-    assertion(Resultado == erro(usuario_invalido)),
+test(cadastro_aceita_credenciais_sem_validacao, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
+    cadastrar_usuario("../admin", "opa", Resultado),
+    assertion(Resultado == ok("../admin")),
     snapshot_usuarios(Usuarios),
-    assertion(Usuarios == []).
+    assertion(Usuarios = [usuario("../admin", _)]).
 
-test(criar_sessao_rejeita_usuario_inseguro, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
+test(criar_sessao_aceita_usuario_sem_restricao_de_formato, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
     criar_sessao("../admin", Resultado),
-    assertion(Resultado == erro(usuario_invalido)).
+    assertion(Resultado = ok(sessao("../admin", _))).
+
+test(login_aceita_credenciais_existentes_sem_validacao_de_tamanho, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
+    crypto_password_hash("x", HashSenha),
+    inserir_usuario_db("ab", HashSenha, ok),
+    autenticar_usuario("ab", "x", Resultado),
+    assertion(Resultado = ok(sessao("ab", _))).
 
 test(isolamento_entre_usuarios, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
-    cadastrar_usuario("ana", "senha123", "senha123", ok("ana")),
-    cadastrar_usuario("bob", "senha123", "senha123", ok("bob")),
+    cadastrar_usuario("ana", "senha123", ok("ana")),
+    cadastrar_usuario("bob", "senha123", ok("bob")),
     autenticar_usuario("ana", "senha123", ok(SessaoAna)),
     abrir_sessao(SessaoAna, ok),
     inserir_contato_db(contato(1, 'Ana Silva', '1111', 'ana@email.com', [familia]), ok),

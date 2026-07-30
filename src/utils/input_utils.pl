@@ -21,12 +21,6 @@ ler_senha(Mensagem, Senha) :-
     % read_line_to_string evita que a senha seja interpretada como termo Prolog.
     ler_linha(Mensagem, Senha).
 
-ler_grupos(Mensagem, Grupos) :-
-    ler_texto_opcional(Mensagem, Linha),
-    ( Linha == "" -> Grupos = []
-    ; split_string(Linha, "|", " ", Brutos), include(texto_nao_vazio, Brutos, Grupos)
-    ).
-
 confirmar(Mensagem, Confirmado) :-
     ler_linha(Mensagem, Linha),
     string_lower(Linha, Minusculo),
@@ -51,4 +45,3 @@ ler_linha(Mensagem, Linha) :-
     format('~w', [Mensagem]),
     read_line_to_string(user_input, Linha).
 
-texto_nao_vazio(Texto) :- Texto \== "".

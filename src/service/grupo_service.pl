@@ -1,134 +1,100 @@
 :- module(grupo_service, [
-    criarGrupo/2,
     apagarGrupo/2,
-    editarNomeGrupo/3,
     adicionarContatoEmGrupo/3,
     removerContatoDeGrupo/3,
+    listarGrupos/1,
     listarContatosPorGrupo/2,
     listarContatosPorGrupos/2,
     buscarPorNomeOuTelefoneNosGrupos/3
 ]).
 
-:- use_module('../db/grupo_db.pl').
-:- use_module('contato_service.pl', [buscar_por_id/2]).
+:- use_module('../repository/grupo_repository.pl', [chave_grupo/2]).
+:- use_module('../utils/validation.pl', [normalizar_texto/2]).
 :- use_module(library(lists)).
-:- use_module(library(apply)). % Necessário para o exclude/3
 
-% Cria um novo grupo
-criarGrupo(NomeBruto, Resultado) :-
-    texto_limpo(NomeBruto, Nome),
-    ( Nome == "" ->
-        Resultado = erro("O nome do grupo nao pode ser vazio.")
-    ; grupo(Nome, _) ->
-        Resultado = erro("Ja existe um grupo com este nome.")
-    ; inserir_grupo_db(grupo(Nome, []), Resultado)
+apagarGrupo(NomeBruto, Resultado) :-
+    ( grupo_existente(NomeBruto, Chave) ->
+        findall(Id, (user:contato(Id, _, _, _, Grupos), possui_chave(Grupos, Chave)), Ids),
+        remover_grupo_dos_contatos(Ids, Chave),
+        Resultado = ok
+    ; Resultado = erro(grupo_inexistente)
     ).
 
-% Apaga um grupo existente
-apagarGrupo(NomeGrupo, Resultado) :-
-    ( grupo(NomeGrupo, _) ->
-        remover_grupo_db(NomeGrupo, Resultado)
-    ; Resultado = erro("Grupo nao encontrado.")
-    ).
-
-% Edita o nome de um grupo
-editarNomeGrupo(NomeAntigo, NomeNovoBruto, Resultado) :-
-    texto_limpo(NomeNovoBruto, NomeNovo),
-    ( NomeNovo == "" ->
-        Resultado = erro("O novo nome do grupo nao pode ser vazio.")
-    ; \+ grupo(NomeAntigo, _) ->
-        Resultado = erro("Grupo antigo nao encontrado.")
-    ; grupo(NomeNovo, _) ->
-        Resultado = erro("Ja existe um grupo com este novo nome.")
-    ; 
-      grupo(NomeAntigo, Contatos),
-      remover_grupo_db(NomeAntigo, _),
-      inserir_grupo_db(grupo(NomeNovo, Contatos), Resultado)
-    ).
-
-% Adiciona um contato em um grupo
-adicionarContatoEmGrupo(NomeGrupo, IdContato, Resultado) :-
-    ( \+ grupo(NomeGrupo, _) ->
-        Resultado = erro("Grupo nao encontrado.")
-    ; \+ buscar_por_id(IdContato, _) ->
-        Resultado = erro("Contato nao encontrado no sistema.")
-    ; grupo(NomeGrupo, Contatos),
-      ( member(IdContato, Contatos) ->
-          Resultado = ok 
-      ; append(Contatos, [IdContato], NovosContatos),
-        atualizar_grupo_db(NomeGrupo, grupo(NomeGrupo, NovosContatos), Resultado)
-      )
-    ).
-
-
-% Remove um contato de um grupo
-removerContatoDeGrupo(NomeGrupo, IdContato, Resultado) :-
-    ( \+ grupo(NomeGrupo, Contatos) ->
-        Resultado = erro("Grupo nao encontrado.")
-    ; ( select(IdContato, Contatos, NovosContatos) ->
-          atualizar_grupo_db(NomeGrupo, grupo(NomeGrupo, NovosContatos), Resultado)
-      ; Resultado = erro("O contato nao esta neste grupo.")
-      )
-    ).
-
-
-% Lista todos os contatos de um grupo
-listarContatosPorGrupo(NomeGrupo, ContatosDetalhados) :-
-    ( grupo(NomeGrupo, IdsContatos) ->
-        maplist(buscar_por_id_seguro, IdsContatos, ListaIncompleta),
-        exclude(==(nulo), ListaIncompleta, ContatosDetalhados)
-    ; ContatosDetalhados = []
-    ).
-
-buscar_por_id_seguro(Id, Contato) :-
-    ( buscar_por_id(Id, C) -> Contato = C ; Contato = nulo ).
-
-% Lista contatos de múltiplos grupos
-listarContatosPorGrupos(ListaGrupos, ContatosUnicos) :-
-    % Busca as listas de Ids para cada grupo fornecido
-    findall(Ids, (member(G, ListaGrupos), grupo(G, Ids)), ListaDeListas),
-    flatten(ListaDeListas, TodosIds), 
-    list_to_set(TodosIds, IdsUnicos), 
-    
-    maplist(buscar_por_id_seguro, IdsUnicos, ListaIncompleta),
-    exclude(==(nulo), ListaIncompleta, ContatosUnicos).
-
-% Busca por Nome ou Telefone dentro de Grupos Específicos
-buscarPorNomeOuTelefoneNosGrupos(TermoBusca, ListaGrupos, Resultados) :-
-    listarContatosPorGrupos(ListaGrupos, ContatosDosGrupos),
-    normalizar_texto(TermoBusca, BuscaNormalizada),
-    findall(Contato,
-        ( member(Contato, ContatosDosGrupos),
-          Contato = contato(_, Nome, Telefone, _, _),
-          normalizar_texto(Nome, NomeNorm),
-          texto_limpo(Telefone, TelLimpo),
-          ( sub_string(NomeNorm, _, _, _, BuscaNormalizada)
-          ; sub_string(TelLimpo, _, _, _, BuscaNormalizada)
+adicionarContatoEmGrupo(NomeBruto, TelefoneBruto, Resultado) :-
+    ( normalizar_nome_grupo(NomeBruto, Nome) ->
+        ( user:buscar_contato_por_telefone(TelefoneBruto, contato(Id, NomeContato, Telefone, Email, Grupos)) ->
+          chave_grupo(Nome, Chave),
+          ( possui_chave(Grupos, Chave) -> Resultado = erro(grupo_duplicado(Nome))
+          ; append(Grupos, [Nome], NovosGrupos),
+            user:atualizar_contato_db(Id, contato(Id, NomeContato, Telefone, Email, NovosGrupos), Resultado)
           )
-        ),
-        ResultadosBrutos
-    ),
-    list_to_set(ResultadosBrutos, Resultados).
+        ; Resultado = erro(contato_inexistente)
+        )
+    ).
 
-normalizar_texto(TextoBruto, Normalizado) :-
-    texto_limpo(TextoBruto, Limpo),
-    string_lower(Limpo, Normalizado).
+removerContatoDeGrupo(NomeBruto, TelefoneBruto, Resultado) :-
+    ( user:buscar_contato_por_telefone(TelefoneBruto, contato(Id, NomeContato, Telefone, Email, Grupos)) ->
+      ( \+ grupo_existente(NomeBruto, _) -> Resultado = erro(grupo_inexistente)
+      ; chave_grupo(NomeBruto, Chave),
+      ( remover_chave(Chave, Grupos, NovosGrupos) ->
+          user:atualizar_contato_db(Id, contato(Id, NomeContato, Telefone, Email, NovosGrupos), Resultado)
+      ; Resultado = erro(contato_nao_pertence_ao_grupo)
+      )
+      )
+    ; Resultado = erro(contato_inexistente)
+    ).
 
-texto_limpo(TextoBruto, Limpo) :-
-    ( string(TextoBruto) -> Texto = TextoBruto
-    ; atom(TextoBruto) -> atom_string(TextoBruto, Texto)
-    ; number(TextoBruto) -> number_string(TextoBruto, Texto)
-    ; Texto = ""
-    ),
-    string_codes(Texto, Codigos),
-    remover_espacos_inicio(Codigos, SemEspacosInicio),
-    reverse(SemEspacosInicio, Reverso),
-    remover_espacos_inicio(Reverso, ReversoSemEspacos),
-    reverse(ReversoSemEspacos, CodigosLimpos),
-    string_codes(Limpo, CodigosLimpos).
+listarGrupos(Grupos) :- grupo_repository:listar_grupos_derivados(Grupos).
 
-remover_espacos_inicio([Codigo | Resto], Resultado) :-
-    code_type(Codigo, space),
-    !,
-    remover_espacos_inicio(Resto, Resultado).
-remover_espacos_inicio(Codigos, Codigos).
+listarContatosPorGrupo(Nome, Contatos) :-
+    grupo_repository:ids_por_grupo(Nome, Ids),
+    contatos_por_ids(Ids, Contatos).
+
+listarContatosPorGrupos(Nomes, Contatos) :-
+    findall(Id,
+            ( member(Nome, Nomes),
+              grupo_repository:ids_por_grupo(Nome, IdsDoGrupo),
+              member(Id, IdsDoGrupo)
+            ),
+            IdsRepetidos),
+    list_to_set(IdsRepetidos, Ids),
+    contatos_por_ids(Ids, Contatos).
+
+buscarPorNomeOuTelefoneNosGrupos(TermoBruto, Nomes, Resultados) :-
+    chave_grupo(TermoBruto, Termo),
+    listarContatosPorGrupos(Nomes, Contatos),
+    include(corresponde_ao_termo(Termo), Contatos, Resultados).
+
+corresponde_ao_termo(Termo, contato(_, Nome, Telefone, _, _)) :-
+    chave_grupo(Nome, NomeNormalizado),
+    normalizar_texto(Telefone, TelefoneNormalizado),
+    ( sub_string(NomeNormalizado, _, _, _, Termo)
+    ; sub_string(TelefoneNormalizado, _, _, _, Termo)
+    ).
+
+normalizar_nome_grupo(NomeBruto, Nome) :-
+    normalizar_texto(NomeBruto, Nome).
+
+grupo_existente(Nome, Chave) :-
+    chave_grupo(Nome, Chave),
+    grupo_repository:grupo(NomeExistente, _),
+    chave_grupo(NomeExistente, Chave),
+    !.
+
+possui_chave(Grupos, Chave) :- member(Grupo, Grupos), chave_grupo(Grupo, Chave), !.
+
+remover_chave(Chave, Grupos, Restantes) :-
+    select(Grupo, Grupos, Restantes), chave_grupo(Grupo, Chave), !.
+
+contatos_por_ids([], []).
+contatos_por_ids([Id | Ids], [Contato | Contatos]) :-
+    user:contato(Id, Nome, Telefone, Email, Grupos),
+    Contato = contato(Id, Nome, Telefone, Email, Grupos),
+    contatos_por_ids(Ids, Contatos).
+
+remover_grupo_dos_contatos([], _).
+remover_grupo_dos_contatos([Id | Ids], Chave) :-
+    user:contato(Id, Nome, Telefone, Email, Grupos),
+    remover_chave(Chave, Grupos, NovosGrupos),
+    user:atualizar_contato_db(Id, contato(Id, Nome, Telefone, Email, NovosGrupos), ok),
+    remover_grupo_dos_contatos(Ids, Chave).

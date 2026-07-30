@@ -11,7 +11,7 @@ menu_autenticacao(Resultado) :-
     repeat,
     exibir_menu_autenticacao,
     ler_opcao_autenticacao(Opcao),
-    tratar_opcao_autenticacao(Opcao, Resultado),
+    once(tratar_opcao_autenticacao(Opcao, Resultado)),
     Resultado \= repetir,
     !.
 
@@ -36,8 +36,7 @@ fluxo_login(Resultado) :-
 fluxo_cadastro(repetir) :-
     ler_texto_opcional('Novo usuario: ', Usuario),
     ler_senha('Senha: ', Senha),
-    ler_senha('Confirmacao: ', Confirmacao),
-    cadastrar_usuario(Usuario, Senha, Confirmacao, ResultadoCadastro),
+    cadastrar_usuario(Usuario, Senha, ResultadoCadastro),
     exibir_resultado_cadastro(ResultadoCadastro).
 
 tratar_opcao_autenticacao("1", Resultado) :-

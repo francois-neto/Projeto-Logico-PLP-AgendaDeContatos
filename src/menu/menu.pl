@@ -1,5 +1,6 @@
 :- consult('../db/contato_db.pl').
 :- consult('../service/contato_service.pl').
+:- use_module('../service/grupo_service.pl').
 :- consult('../utils/input_utils.pl').
 
 /**
@@ -13,7 +14,7 @@ menu_principal(Sessao, AcaoFinal) :-
     repeat,
     exibir_menu_principal(Sessao),
     ler_opcao_menu(Opcao),
-    tratar_opcao_menu(Opcao, Acao),
+    once(tratar_opcao_menu(Opcao, Acao)),
     Acao \= continuar,
     AcaoFinal = Acao,
     !.
@@ -28,7 +29,7 @@ menu_pesquisa(continuar) :-
     repeat,
     format('~nPESQUISAR CONTATO~n1. Nome~n2. Telefone~n3. ID~n0. Voltar~n', []),
     ler_texto_opcional('Escolha uma opcao: ', Opcao),
-    tratar_opcao_pesquisa(Opcao, Resultado),
+    once(tratar_opcao_pesquisa(Opcao, Resultado)),
     Resultado \= continuar_pesquisa,
     !.
 
@@ -39,7 +40,12 @@ menu_pesquisa(continuar) :-
  * @return Verdadeiro quando a navegacao retorna ao menu anterior.
  */
 menu_grupos(continuar) :-
-    format('Gestao de grupos depende do servico da pessoa 3.~n').
+    repeat,
+    format('~nGERENCIAR GRUPOS~n1. Listar grupos~n2. Adicionar contato a um grupo~n3. Remover contato de um grupo~n0. Voltar~n', []),
+    ler_texto_opcional('Escolha uma opcao: ', Opcao),
+    once(tratar_opcao_grupos(Opcao, Resultado)),
+    Resultado \= continuar_grupos,
+    !.
 
 tratar_opcao_menu("1", continuar) :-
     listar_contatos_menu.
@@ -93,6 +99,27 @@ tratar_opcao_pesquisa("3", continuar_pesquisa) :-
     ( buscar_por_id(Id, Contato) -> exibir_contato(Contato) ; format('Contato nao encontrado.~n') ).
 tratar_opcao_pesquisa("0", voltar).
 tratar_opcao_pesquisa(_, continuar_pesquisa) :- format('Opcao invalida.~n').
+
+tratar_opcao_grupos("1", continuar_grupos) :-
+    listarGrupos(Grupos),
+    exibir_grupos(Grupos).
+tratar_opcao_grupos("2", continuar_grupos) :-
+    ler_texto_nao_vazio('Telefone do contato: ', Telefone),
+    ler_texto_nao_vazio('Nome do grupo: ', Nome),
+    adicionarContatoEmGrupo(Nome, Telefone, Resultado),
+    exibir_resultado(Resultado).
+tratar_opcao_grupos("3", continuar_grupos) :-
+    ler_texto_nao_vazio('Telefone do contato: ', Telefone),
+    ler_texto_nao_vazio('Nome do grupo: ', Nome),
+    removerContatoDeGrupo(Nome, Telefone, Resultado),
+    exibir_resultado(Resultado).
+tratar_opcao_grupos("0", voltar).
+tratar_opcao_grupos(_, continuar_grupos) :- format('Opcao invalida.~n').
+
+exibir_grupos([]) :- format('Nenhum grupo cadastrado.~n').
+exibir_grupos([Grupo | Restante]) :-
+    format('~w~n', [Grupo]),
+    exibir_grupos(Restante).
 
 exibir_menu_principal(sessao(Usuario, _)) :-
     format('~nAGENDA DE CONTATOS~n', []),
