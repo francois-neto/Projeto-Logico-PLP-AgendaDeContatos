@@ -18,6 +18,14 @@ test(cadastro_persiste_hash_e_autentica, [setup(setup_auth_env(Contexto)), clean
     autenticar_usuario("ana", "senha123", ResultadoLogin),
     assertion(ResultadoLogin = ok(sessao("ana", _))).
 
+test(login_apos_recarregar_hash_persistido, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
+    cadastrar_usuario("ana", "senha123", ok("ana")),
+    Contexto = contexto(_, CaminhoUsuarios, DiretorioDados),
+    configurar_ambiente_auth(CaminhoUsuarios, DiretorioDados),
+    iniciar_aplicacao(ok),
+    autenticar_usuario("ana", "senha123", ResultadoLogin),
+    assertion(ResultadoLogin = ok(sessao("ana", _))).
+
 test(cadastro_aceita_credenciais_sem_validacao, [setup(setup_auth_env(Contexto)), cleanup(cleanup_auth_env(Contexto))]) :-
     cadastrar_usuario("../admin", "opa", Resultado),
     assertion(Resultado == ok("../admin")),

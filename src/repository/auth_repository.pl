@@ -47,7 +47,8 @@ salvar_usuarios_csv(Caminho, Usuarios, Resultado) :-
  * @return Verdadeiro quando a linha possui o formato esperado.
  */
 linha_para_usuario(Linha, usuario(NomeUsuario, HashSenha)) :-
-    split_string(Linha, ",", "", [NomeUsuario, HashSenha]).
+    split_string(Linha, ",", "", [NomeUsuario, HashSenhaTexto]),
+    atom_string(HashSenha, HashSenhaTexto).
 
 /**
  * Converte um termo logico de usuario para a linha textual do CSV.
