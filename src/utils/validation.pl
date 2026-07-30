@@ -1,10 +1,6 @@
 :- module(validation, [
-    validar_usuario/2,
-    validar_senha/3,
-    validar_nome_contato/2,
     validar_telefone/2,
     validar_email/2,
-    validar_grupo/2,
     normalizar_texto/2,
     validar_telefone_brasil/1,
     normalizar_telefone/2
@@ -16,32 +12,6 @@ normalizar_texto(Entrada, Normalizado) :-
     texto_para_string(Entrada, Texto),
     normalize_space(string(Normalizado), Texto).
 
-validar_usuario(Usuario, ok) :-
-    string(Usuario),
-    string_length(Usuario, Tamanho),
-    between(3, 30, Tamanho),
-    string_codes(Usuario, Codigos),
-    Codigos \= [],
-    maplist(codigo_usuario_valido, Codigos),
-    !.
-validar_usuario(_, erro(usuario_invalido)).
-
-validar_senha(Senha, Confirmacao, ok) :-
-    string(Senha),
-    Senha == Confirmacao,
-    string_length(Senha, Tamanho),
-    Tamanho >= 8,
-    !.
-validar_senha(Senha, Confirmacao, erro(confirmacao_senha_invalida)) :-
-    Senha \== Confirmacao,
-    !.
-validar_senha(_, _, erro(senha_muito_curta)).
-
-validar_nome_contato(Nome, ok) :-
-    texto_csv_nao_vazio(Nome),
-    !.
-validar_nome_contato(_, erro(nome_contato_invalido)).
-
 % A agenda trabalha com telefones brasileiros; formatações comuns são aceitas
 % porque a validação considera apenas os dígitos.
 validar_telefone(Telefone, ok) :-
@@ -52,17 +22,9 @@ validar_telefone(_, erro(telefone_invalido)).
 
 validar_email(Email, ok) :-
     texto_para_string(Email, Texto),
-    ( Texto == "" ; email_basico_valido(Texto) ),
+    ( Texto == "" ; sub_string(Texto, _, _, _, "@") ),
     !.
 validar_email(_, erro(email_invalido)).
-
-validar_grupo(Grupo, ok) :-
-    normalizar_texto(Grupo, Normalizado),
-    Normalizado \== "",
-    \+ sub_string(Normalizado, _, _, _, ","),
-    \+ sub_string(Normalizado, _, _, _, "|"),
-    !.
-validar_grupo(_, erro(grupo_invalido)).
 
 validar_telefone_brasil(TelefoneBruto) :-
     normalizar_telefone(TelefoneBruto, Telefone),
@@ -81,13 +43,6 @@ texto_csv_nao_vazio(Entrada) :-
     normalizar_texto(Entrada, Normalizado),
     Normalizado \== "",
     \+ sub_string(Normalizado, _, _, _, ",").
-
-email_basico_valido(Email) :-
-    \+ sub_string(Email, _, _, _, ","),
-    split_string(Email, "@", "", [Local, Dominio]),
-    Local \== "",
-    Dominio \== "",
-    sub_string(Dominio, _, _, _, ".").
 
 telefone_de_servico_valido(Telefone) :-
     string_length(Telefone, 11),
@@ -121,8 +76,6 @@ ddd_valido(Ddd) :-
                     "81", "82", "83", "84", "85", "86", "87", "88", "89", "91",
                     "92", "93", "94", "95", "96", "97", "98", "99"]).
 
-codigo_usuario_valido(Codigo) :- code_type(Codigo, alnum).
-codigo_usuario_valido(0'_).
 codigo_digito(Codigo) :- code_type(Codigo, digit).
 
 texto_para_string(Texto, Texto) :- string(Texto), !.

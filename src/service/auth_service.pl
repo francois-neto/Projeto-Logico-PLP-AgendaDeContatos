@@ -3,9 +3,7 @@
 :- consult('../repository/auth_repository.pl').
 :- consult('../repository/contato_repository.pl').
 :- use_module('../utils/validation.pl', [
-    normalizar_texto/2,
-    validar_usuario/2,
-    validar_senha/3
+    normalizar_texto/2
 ]).
 
 :- dynamic auth_config/2.
@@ -55,13 +53,12 @@ normalizar_usuario(UsuarioBruto, UsuarioNormalizado) :-
  *
  * @param Usuario Nome informado no cadastro.
  * @param Senha Senha informada no cadastro.
- * @param Confirmacao Confirmacao da senha.
  * @param Resultado Termo com o desfecho da operacao.
  * @return `ok(Usuario)` quando o cadastro e concluido ou `erro(Codigo)` em caso de falha.
  */
-cadastrar_usuario(Usuario, Senha, Confirmacao, Resultado) :-
+cadastrar_usuario(Usuario, Senha, Resultado) :-
     normalizar_usuario(Usuario, UsuarioNormalizado),
-    validar_cadastro(UsuarioNormalizado, Senha, Confirmacao, ResultadoValidacao),
+    preparar_cadastro(UsuarioNormalizado, ResultadoValidacao),
     concluir_cadastro(ResultadoValidacao, UsuarioNormalizado, Senha, Resultado).
 
 concluir_cadastro(ok, UsuarioNormalizado, Senha, Resultado) :-
@@ -124,9 +121,22 @@ resultado_criacao_sessao(erro(Codigo), _, _, erro(Codigo)).
  * @return Verdadeiro quando o caminho e construido.
  */
 resolver_caminho_contatos(Usuario, CaminhoContatos) :-
-    validar_usuario(Usuario, ok),
+    diretorio_usuario(Usuario, DiretorioUsuario),
     auth_paths(_, DiretorioDados),
-    atomic_list_concat([DiretorioDados, '/', Usuario, '/contatos.csv'], CaminhoContatos).
+    atomic_list_concat([DiretorioDados, '/', DiretorioUsuario, '/contatos.csv'], CaminhoContatos).
+
+diretorio_usuario(Usuario, Usuario) :-
+    string(Usuario),
+    string_codes(Usuario, Codigos),
+    Codigos \= [],
+    maplist(codigo_diretorio_seguro, Codigos),
+    !.
+diretorio_usuario(Usuario, DiretorioUsuario) :-
+    crypto_data_hash(Usuario, Hash, [algorithm(sha256)]),
+    atom_string(Hash, DiretorioUsuario).
+
+codigo_diretorio_seguro(Codigo) :- code_type(Codigo, alnum).
+codigo_diretorio_seguro(0'_).
 
 /**
  * Garante a existencia da agenda isolada do usuario.
@@ -143,16 +153,10 @@ inicializar_agenda_usuario(Usuario, Resultado) :-
         criar_csv_contatos_vazio(CaminhoContatos, Resultado)
     ).
 
-validar_cadastro(UsuarioNormalizado, Senha, Confirmacao, ok) :-
-    validar_usuario(UsuarioNormalizado, ok),
-    \+ buscar_usuario_db(UsuarioNormalizado, _),
-    validar_senha(Senha, Confirmacao, ok).
-validar_cadastro(UsuarioNormalizado, _, _, erro(usuario_duplicado(UsuarioNormalizado))) :-
-    buscar_usuario_db(UsuarioNormalizado, _).
-validar_cadastro(UsuarioNormalizado, _, _, erro(Codigo)) :-
-    validar_usuario(UsuarioNormalizado, erro(Codigo)).
-validar_cadastro(_, Senha, Confirmacao, erro(Codigo)) :-
-    validar_senha(Senha, Confirmacao, erro(Codigo)).
+preparar_cadastro(UsuarioNormalizado, erro(usuario_duplicado(UsuarioNormalizado))) :-
+    buscar_usuario_db(UsuarioNormalizado, _),
+    !.
+preparar_cadastro(_, ok).
 
 auth_paths(CaminhoUsuarios, DiretorioDados) :-
     auth_config(CaminhoUsuarios, DiretorioDados),
