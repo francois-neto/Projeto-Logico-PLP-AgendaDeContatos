@@ -32,7 +32,7 @@ Depois do login, a aplicacao resolve o caminho dos dados daquele usuario e carre
 
 Os grupos nao sao tratados como uma fonte independente da verdade. Cada contato guarda os nomes dos grupos aos quais pertence, e a camada de grupos monta a visao agregada quando necessario. Para adicionar ou remover um contato de grupo, a interface usa o telefone como identificador; o ID continua sendo apenas um detalhe interno do contato.
 
-## O que faz este projeto ser funcional de verdade
+## O que faz este projeto ser Lógico de verdade
 
 Em linguagens imperativas, o caminho mais comum seria manipular objetos e colecoes diretamente. Em Prolog, a aplicacao descreve relacoes por fatos e faz perguntas a essas relacoes por regras.
 
@@ -165,7 +165,7 @@ O cadastro e o login nao aplicam validacoes de tamanho ou formato para usuario e
 
 ## Como compilar e executar
 
-Prolog nao exige uma etapa separada de compilacao para este projeto. O SWI-Prolog carrega o arquivo de entrada e inicia a aplicacao.
+Prolog nao exige uma etapa separada de compilacao para este pr  ojeto. O SWI-Prolog carrega o arquivo de entrada e inicia a aplicacao.
 
 Na raiz do projeto:
 
