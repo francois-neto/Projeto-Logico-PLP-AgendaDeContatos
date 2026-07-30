@@ -4,6 +4,7 @@
 :- consult('contato_db_test.pl').
 :- consult('contato_repository_test.pl').
 :- consult('contato_service_test.pl').
+:- consult('grupo_service_test.pl').
 
 run_tests :-
     plunit:run_tests.
