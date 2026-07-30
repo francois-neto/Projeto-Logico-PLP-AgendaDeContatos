@@ -119,7 +119,12 @@ tratar_opcao_grupos(_, continuar_grupos) :- format('Opcao invalida.~n').
 exibir_grupos([]) :- format('Nenhum grupo cadastrado.~n').
 exibir_grupos([Grupo | Restante]) :-
     format('~w~n', [Grupo]),
-    exibir_grupos(Restante).
+    exibir_restante_grupos(Restante).
+
+exibir_restante_grupos([]).
+exibir_restante_grupos([Grupo | Restante]) :-
+    format('~w~n', [Grupo]),
+    exibir_restante_grupos(Restante).
 
 exibir_menu_principal(sessao(Usuario, _)) :-
     format('~nAGENDA DE CONTATOS~n', []),

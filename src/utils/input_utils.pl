@@ -35,7 +35,14 @@ exibir_contato(contato(Id, Nome, Telefone, Email, Grupos)) :-
            [Id, Nome, Telefone, Email, Grupos]).
 
 exibir_contatos([]) :- format('Nenhum contato encontrado.~n').
-exibir_contatos([Contato | Restante]) :- exibir_contato(Contato), exibir_contatos(Restante).
+exibir_contatos([Contato | Restante]) :-
+    exibir_contato(Contato),
+    exibir_restante_contatos(Restante).
+
+exibir_restante_contatos([]).
+exibir_restante_contatos([Contato | Restante]) :-
+    exibir_contato(Contato),
+    exibir_restante_contatos(Restante).
 
 exibir_resultado(ok) :- format('Operacao realizada com sucesso.~n').
 exibir_resultado(ok(Valor)) :- format('Operacao realizada: ~w~n', [Valor]).
