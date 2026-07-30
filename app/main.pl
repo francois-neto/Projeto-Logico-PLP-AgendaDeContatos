@@ -3,6 +3,7 @@
 :- consult('../src/repository/auth_repository.pl').
 :- consult('../src/repository/contato_repository.pl').
 :- consult('../src/service/auth_service.pl').
+:- use_module('../src/service/grupo_service.pl').
 :- consult('../src/menu/auth_menu.pl').
 :- consult('../src/menu/menu.pl').
 
@@ -82,7 +83,7 @@ run_main_if_entry :-
 run_main_if_entry.
 
 deve_iniciar_main :-
-    prolog_load_context(file, ArquivoAtual),
+    source_file(main, ArquivoAtual),
     current_prolog_flag(os_argv, Argumentos),
     member(Argumento, Argumentos),
     normalizar_caminho(ArquivoAtual, CaminhoAtual),
