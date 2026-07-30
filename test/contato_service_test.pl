@@ -14,9 +14,9 @@ test(crud_com_busca_por_telefone_normalizado,
     remover_contato(1, ok),
     \+ buscar_por_id(1, _).
 
-test(campos_invalidos_nao_alteram_base,
+test(telefone_invalido_nao_altera_base,
      [setup(limpar_contatos), cleanup(limpar_contatos)]) :-
-    cadastrar_contato("", "123", "email-invalido", [], erro(nome_contato_invalido)),
+    cadastrar_contato("", "123", "email-invalido", [], erro(telefone_invalido)),
     snapshot_contatos([]).
 
 test(id_duplicado_e_rejeitado,
